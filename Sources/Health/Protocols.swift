@@ -193,7 +193,7 @@ extension Status: Decodable {
 
 /// HealthCheckClosure is a type alias for a closure that receives no arguments and
 /// returns a State value.
-public typealias HealthCheckClosure = () -> State
+public typealias HealthCheckClosure = () async -> State
 
 /// Health check classes should extend this protocol to provide concrete implementations.
 public protocol HealthCheck {
@@ -202,14 +202,14 @@ public protocol HealthCheck {
   /// Description for the health check.
   var description: String { get }
   /// Performs the health check test.
-  func evaluate() -> State
+  func evaluate() async -> State
 }
 
 /// Specifies the blueprint that must be implemented to satisfy the needs of a `Health` class.
 /// A concrete implementation of this protocol is already provided by this library (Health).
 public protocol HealthProtocol {
   /// Status instance variable.
-  var status: Status { get }
+  var status: Status { get async }
   /// Registers a health check.
   ///
   /// - Parameter check: An object that extends the `HealthCheck` class.

@@ -21,7 +21,7 @@ import Foundation
 
 class HealthTests: XCTestCase {
 
-  static var allTests: [(String, (HealthTests) -> () throws -> Void)] {
+  static var allTests: [(String, (HealthTests) -> () async throws -> Void)] {
     return [
       ("testBasicConstruction", testBasicConstruction),
       ("testAddChecks", testAddChecks),
@@ -47,11 +47,11 @@ class HealthTests: XCTestCase {
     }
   }
 
-  func myPositiveClosureCheck() -> State {
+  func myPositiveClosureCheck() async -> State {
     return State.UP
   }
 
-  func myNegativeClosureCheck() -> State {
+  func myNegativeClosureCheck() async -> State {
     return State.DOWN
   }
 
@@ -60,18 +60,20 @@ class HealthTests: XCTestCase {
   }
 
   // Create Stats, and check that default values are set
-  func testBasicConstruction() {
+  func testBasicConstruction() async {
 
     // Create Health instance
     let health = Health()
+    var status = await health.status
 
     // Assert initial state
     XCTAssertEqual(health.numberOfChecks, 0)
-    XCTAssertEqual(health.status.state, State.UP)
-    XCTAssertEqual(health.status.details.count, 0)
+    status = await health.status
+    XCTAssertEqual(status.state, State.UP)
+    XCTAssertEqual(status.details.count, 0)
 
     // Assert contents of simple dictionary
-    let simpleDictionary = health.status.toSimpleDictionary()
+    let simpleDictionary = await health.status.toSimpleDictionary()
     print("simpleDictionary: \(simpleDictionary)")
     XCTAssertEqual(simpleDictionary.count, 1)
     let simpleKeys = simpleDictionary.keys
@@ -83,7 +85,7 @@ class HealthTests: XCTestCase {
     }
 
     // Assert contents of dictionary
-    let dictionary = health.status.toDictionary()
+    let dictionary = await health.status.toDictionary()
     print("dictionary: \(dictionary)")
     // There should only be two keys
     XCTAssertEqual(dictionary.count, 3)
@@ -117,10 +119,11 @@ class HealthTests: XCTestCase {
     }
   }
 
-  func testAddChecks() {
+  func testAddChecks() async throws {
     // Create Health instance
     let statusExpirationTime = 3000
     let health = Health(statusExpirationTime: statusExpirationTime)
+    var status = await health.status
 
     // Add checks
     health.addCheck(check: MyPositiveCheck())
@@ -131,14 +134,16 @@ class HealthTests: XCTestCase {
     // Perform assertions
     XCTAssertEqual(health.numberOfChecks, 4)
     // State should still be up (caching - 30 seconds)
-    XCTAssertEqual(health.status.state, State.UP)
+    status = await health.status
+      XCTAssertEqual(status.state, State.UP)
     // Wait for cache to expire
     sleep(UInt32((statusExpirationTime + 1000)/1000))
     // State should be down now...
-    XCTAssertEqual(health.status.state, State.DOWN)
+    status = await health.status
+    XCTAssertEqual(status.state, State.DOWN)
 
     // Assert contents of dictionary
-    let dictionary = health.status.toDictionary()
+    let dictionary = await health.status.toDictionary()
     print("dictionary: \(dictionary)")
     if let status = dictionary["status"] as? String {
       XCTAssertEqual(status, "DOWN")

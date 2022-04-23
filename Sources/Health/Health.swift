@@ -52,7 +52,7 @@ public class Health: HealthProtocol {
 
   /// Status instance variable.
   public var status: Status {
-    get {
+    get async {
       statusSemaphore.wait()
       let current = Date.currentTimeMillis()
       let last = self.lastStatus.tsInMillis
@@ -62,7 +62,7 @@ public class Health: HealthProtocol {
       // This is possible because of different rounding behaviour of DateFormatter.string() and
       // timeIntervalSince1970 > UInt64 convertion
       if current > last && (current - last) > UInt64(statusExpirationTime) {
-        forceUpdateStatus()
+        await forceUpdateStatus()
       }
       statusSemaphore.signal()
       return lastStatus
@@ -131,9 +131,9 @@ public class Health: HealthProtocol {
   }
 
   /// Forces an update to the status of this instance.
-  public func forceUpdateStatus() {
-    let checksDetails = checks.map { $0.evaluate() == State.DOWN ? $0.description : nil }
-    let closureChecksDetails = closureChecks.map { $0() == State.DOWN ? "A health check closure reported status as DOWN." : nil }
+  public func forceUpdateStatus() async {
+    let checksDetails = await checks.asyncMap { await $0.evaluate() == State.DOWN ? $0.description : nil }
+    let closureChecksDetails = await closureChecks.asyncMap { await $0() == State.DOWN ? "A health check closure reported status as DOWN." : nil }
     #if swift(>=4.1)
       let details = (checksDetails + closureChecksDetails).compactMap { $0 }
     #else
